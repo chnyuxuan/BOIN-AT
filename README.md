@@ -10,7 +10,7 @@ run the following to install this updated BOIN package.
 
 ```r
 install.packages("devtools")
-devtools::install_github("https://github.com/OliviaClare/BOIN-AT")
+devtools::install_github("https://github.com/chnyuxuan/BOIN-AT")
 library(BOINAT)
 ```
 
