@@ -246,6 +246,7 @@ get.oc.DS3610 <- function (target, p.DLT, p.AE=NULL, ncohort=NULL, cohortsize, n
   N = matrix(rep(0, ndose * ntrial), ncol = ndose)
   dselect = rep(0, ntrial)
   lastdoselevel = rep(0, ntrial)
+  d.ATtransition = rep(0, ntrial)
   
   if (cohortsize > 1) {
     temp = get.boundary(target, ncohort, cohortsize, n.earlystop=ncohort*cohortsize,
@@ -274,17 +275,20 @@ get.oc.DS3610 <- function (target, p.DLT, p.AE=NULL, ncohort=NULL, cohortsize, n
         if(z==1){ # DLT
           n[d]=1
           y[d]=1
+          d.ATtransition[trial] = d
           break
         }else{
           n[d]=1
           y[d]=0
           z.ae <- (runif(1) < p.ae.nonDLT[d])
           if(z.ae==1){ # non DLT AE
+            d.ATtransition[trial] = d
             break
           }
           if(d==ntitration && z.ae==0){
             d = d+1 # if last titration dose has no AE or DLT, d+1 is used as start dose of BOIN
             flag.titration = TRUE
+            d.ATtransition[trial] = d
           }
           
         }
@@ -366,11 +370,12 @@ get.oc.DS3610 <- function (target, p.DLT, p.AE=NULL, ncohort=NULL, cohortsize, n
                                   extrasafe, offset, boundMTD = boundMTD, p.tox=p.tox)$MTD
     }
   }
-  selpercent = rep(0, ndose)
+  selpercent = transitionpercent = rep(0, ndose)
   nptsdose = apply(N, 2, mean)
   ntoxdose = apply(Y, 2, mean)
   for (i in 1:ndose) {
     selpercent[i] = sum(dselect == i)/ntrial * 100
+    transitionpercent[i] = sum(d.ATtransition == i)/ntrial * 100
   }
   # if (length(which(p.DLT == target)) > 0) {
   # if (which(p.DLT == target) == ndose - 1) {
@@ -389,7 +394,7 @@ get.oc.DS3610 <- function (target, p.DLT, p.AE=NULL, ncohort=NULL, cohortsize, n
   overdosing80 = mean(rowSums(N[, p.DLT > target, drop=F]) >
                         0.8 * npts) * 100
   # }
-  out = list(selpercent = selpercent, npatients = nptsdose,
+  out = list(selpercent = selpercent, transitionpercent = transitionpercent, npatients = nptsdose,
              ntox = ntoxdose, totaltox = sum(Y)/ntrial, totaln = sum(N)/ntrial,
              percentstop = sum(dselect == 99)/ntrial * 100, 
              overdose50 = overdosing50, overdose60 = overdosing60, overdose80 = overdosing80, 
@@ -399,7 +404,7 @@ get.oc.DS3610 <- function (target, p.DLT, p.AE=NULL, ncohort=NULL, cohortsize, n
                                      cutoff.eli = cutoff.eli, extrasafe = extrasafe,
                                      offset = offset, ntrial = ntrial, dose = 1:ndose),
              flowchart = TRUE, lambda_e = lambda_e, lambda_d = lambda_d,
-             lastdoselevel = lastdoselevel, mtdselected = dselect)
+             lastdoselevel = lastdoselevel, mtdselected = dselect, d.ATtransition = d.ATtransition)
   # }
   # else {
   #   out = list(selpercent = selpercent, npatients = nptsdose,

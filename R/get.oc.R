@@ -237,8 +237,7 @@ get.oc <- function (target, p.DLT, p.AE=NULL, ncohort=NULL, cohortsize, npts=NUL
   ndose = length(p.DLT)
   if(is.null(npts)){
     npts = ncohort * cohortsize
-  }
-  if(is.null(ncohort)){
+  }else if(is.null(ncohort)){
     ncohort = ceiling(npts/cohortsize)
   }
   
