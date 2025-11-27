@@ -61,6 +61,8 @@ p.tox is calculated according to lambda2}
 \item{cutoff.eli}{the cutoff to eliminate an overly toxic dose for safety.
 We recommend the default value of (\code{cutoff.eli=0.95}) for general use.}
 
+\item{cutoff.eli.lowest}{the cutoff to eliminate an overly toxic dose for safety for the lowest dose, can be set differently from the other doses.}
+
 \item{extrasafe}{set \code{extrasafe=TRUE} to impose a more stringent stopping rule}
 
 \item{offset}{a small positive number (between \code{0} and \code{0.5}) to control how strict the

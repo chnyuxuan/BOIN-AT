@@ -43,6 +43,7 @@
 #' @param lambda2 de-escalation boundary. If not specified, lambda2 is calculated according to p.tox. If p.tox is specified, lambda2 will be overridden.
 #' @param cutoff.eli the cutoff to eliminate an overly toxic dose for safety.
 #'                  We recommend the default value of (\code{cutoff.eli=0.95}) for general use.
+#' @param cutoff.eli.lowest the cutoff to eliminate an overly toxic dose for safety for the lowest dose, can be set differently from the other doses.
 #' @param extrasafe set \code{extrasafe=TRUE} to impose a more stringent stopping rule
 #' @param offset a small positive number (between \code{0} and \code{0.5}) to control how strict the
 #'               stopping rule is when \code{extrasafe=TRUE}. A larger value leads to a more
@@ -145,7 +146,7 @@
 get.oc <- function (target, p.DLT, p.AE=NULL, ncohort=NULL, cohortsize, npts=NULL, n.earlystop = 100,
                     startdose = 1, titration = FALSE, ntitration = NULL, limit.lowest = FALSE,
                     p.saf = NULL, p.tox = NULL, lambda1 = NULL, lambda2 = NULL, 
-                    cutoff.eli = 0.95, extrasafe = FALSE, offset = 0.05,boundMTD=FALSE,
+                    cutoff.eli = 0.95, cutoff.eli.lowest=NULL, extrasafe = FALSE, offset = 0.05,boundMTD=FALSE,
                     ntrial = 1000, seed = 6, fix3p3 = FALSE, DE3o9 = FALSE)
 {
   if (target < 0.05) {
@@ -258,6 +259,13 @@ get.oc <- function (target, p.DLT, p.AE=NULL, ncohort=NULL, cohortsize, npts=NUL
   b.e = temp[2, ]
   b.d = temp[3, ]
   b.elim = temp[4, ]
+  
+  if(!is.null(cutoff.eli.lowest)){
+    temp = get.boundary(target, ncohort, cohortsize, n.earlystop=ncohort*cohortsize,
+                        p.saf = p.saf, p.tox = p.tox, lambda1 = lambda1, lambda2 = lambda2, cutoff.eli.lowest, extrasafe, fix3p3 = fix3p3, DE3o9 = DE3o9)$full_boundary_tab
+    b.elim.lowest = temp[4, ]
+  }
+  
   for (trial in 1:ntrial) {
     y <- rep(0, ndose)
     n <- rep(0, ndose)
@@ -312,25 +320,46 @@ get.oc <- function (target, p.DLT, p.AE=NULL, ncohort=NULL, cohortsize, npts=NUL
         }
       }
       
-      
-      if (!is.na(b.elim[n[d]])) {
-        if (y[d] >= b.elim[n[d]]) {
-          elimi[d:ndose] = 1
-          if (d == lowest.dose) {
-            earlystop = 1
-            break
-          }
-        }
-        if (extrasafe) {
-          if (d == 1 && n[1] >= 3) {
-            if (1 - pbeta(target, y[1] + 1, n[1] - y[1] +
-                          1) > cutoff.eli - offset) {
+      if(is.null(cutoff.eli.lowest) || d > 1){
+        if (!is.na(b.elim[n[d]])) {
+          if (y[d] >= b.elim[n[d]]) {
+            elimi[d:ndose] = 1
+            if (d == lowest.dose) {
               earlystop = 1
               break
             }
           }
+          if (extrasafe) {
+            if (d == 1 && n[1] >= 3) {
+              if (1 - pbeta(target, y[1] + 1, n[1] - y[1] +
+                            1) > cutoff.eli - offset) {
+                earlystop = 1
+                break
+              }
+            }
+          }
+        }
+      }else if(!is.null(cutoff.eli.lowest) && d==1){
+        if (!is.na(b.elim.lowest[n[d]])) {
+          if (y[d] >= b.elim.lowest[n[d]]) {
+            elimi[d:ndose] = 1
+            if (d == lowest.dose) {
+              earlystop = 1
+              break
+            }
+          }
+          if (extrasafe) {
+            if (d == 1 && n[1] >= 3) {
+              if (1 - pbeta(target, y[1] + 1, n[1] - y[1] +
+                            1) > cutoff.eli - offset) {
+                earlystop = 1
+                break
+              }
+            }
+          }
         }
       }
+      
       
       
       if(n[d]>=n.earlystop &&
